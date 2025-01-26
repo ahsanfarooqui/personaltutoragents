@@ -3,7 +3,7 @@ import openai
 from langchain.agents import initialize_agent, Tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
-from duckduckgo_search import ddg_search
+from duckduckgo_search import DDGS
 from langchain.prompts import PromptTemplate
 
 # Set up OpenAI API key
@@ -25,7 +25,11 @@ def physics_tool(query: str) -> str:
 
 def web_search_tool(query: str) -> str:
     try:
-        results = ddg_search(query, max_results=3)
+        # Use the latest DuckDuckGo search API (DDGS)
+        ddgs = DDGS()
+        results = ddgs.text(query, max_results=3)
+        
+        # If results are found, format them for display
         if results:
             return "\n".join([f"{result['title']}: {result['url']}" for result in results])
         else:
