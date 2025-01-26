@@ -93,7 +93,7 @@ for log in st.session_state["logs"]:
 
 # Display message history
 st.subheader("Conversation History")
-for message in memory.chat_history:
+for message in memory.chat_memory.messages:
     if message["role"] == "user":
         st.write(f"**You:** {message['content']}")
     else:
