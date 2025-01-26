@@ -94,7 +94,10 @@ for log in st.session_state["logs"]:
 # Display message history
 st.subheader("Conversation History")
 for message in memory.chat_memory.messages:
-    if message["role"] == "user":
-        st.write(f"**You:** {message['content']}")
-    else:
-        st.write(f"**Tutor:** {message['content']}")
+    role = message.role  # Access role (user or assistant)
+    content = message.content  # Access the content of the message
+    
+    if role == "human":
+        st.write(f"**You:** {content}")
+    elif role == "assistant":
+        st.write(f"**Tutor:** {content}")
