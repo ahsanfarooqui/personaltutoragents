@@ -106,6 +106,7 @@ st.subheader("Conversation History")
 memory_variables = memory.load_memory_variables(inputs={"input": user_query})  # Correct usage of memory
 
 chat_history = memory_variables.get("chat_history", [])
+st.write(chat_history)
 for message in chat_history:
     # Access the message content and type
     message_content = message.content
