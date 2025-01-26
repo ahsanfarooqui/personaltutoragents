@@ -3,14 +3,14 @@ import openai
 from langchain.agents import initialize_agent, Tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
-from langchain.schema import HumanMessage, AIMessage  # Import HumanMessage and AIMessage
+from langchain.schema import HumanMessage, AIMessage
 from duckduckgo_search import DDGS
 
 # Set up OpenAI API key
 openai.api_key = st.secrets["openai_api_key"]
 
-# Initialize memory with a higher context length (over 500 tokens)
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, max_token_limit=1500)
+# Initialize memory for maintaining chat history
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 # Define tools for each agent
 def chemistry_tool(query: str) -> str:
@@ -29,7 +29,7 @@ def web_search_tool(query: str) -> str:
         ddgs = DDGS()
         results = ddgs.text(query, max_results=3)
         
-        # If results are found, format them for display
+        # Format and return search results
         if results:
             return "\n".join([f"{result['title']}: {result['href']}" for result in results])
         else:
@@ -42,7 +42,7 @@ def default_tool(query: str) -> str:
         return "I’m not sure how to assist you. Could you clarify?"
     return f"Here’s a general response to the query: {query}"
 
-# Initialize agents with LangChain
+# Initialize tools
 tools = [
     Tool(name="Chemistry Tutor", func=chemistry_tool, description="Helps with chemistry problems."),
     Tool(name="Physics Tutor", func=physics_tool, description="Helps with physics problems."),
@@ -50,44 +50,36 @@ tools = [
     Tool(name="Default Helper", func=default_tool, description="Handles general queries."),
 ]
 
-# Initialize OpenAI model
+# Initialize OpenAI model and agent
 llm = ChatOpenAI(temperature=0, openai_api_key=openai.api_key)
+agent = initialize_agent(
+    tools, llm, agent_type="chat-conversational-react-description", memory=memory
+)
 
-# Initialize LangChain agent with memory
-agent = initialize_agent(tools, llm, agent_type="chat-conversational-react-description", memory=memory)
-
-# Streamlit interface
+# Streamlit app
 st.title("Personalized Chemistry & Physics Tutor")
 st.sidebar.header("Logs")
 user_query = st.text_input("Ask a question:")
 
-# Initialize the logs in the sidebar
+# Initialize logs in session state
 if "logs" not in st.session_state:
     st.session_state["logs"] = []
 
-# Fallback mechanism to default agent if error occurs
+# Function to safely run the agent with fallback to the default agent
 def safe_agent_run(query):
     try:
-        # Retrieve the chat history to include in context for better responses
-        memory_variables = memory.load_memory_variables(inputs={"input": query})  # Correct usage of memory
-        chat_history = memory_variables.get("chat_history", [])
-        
-        context = "\n".join([msg.content for msg in chat_history])  # Collect all previous interactions
-        
-        # Run the agent with the full context included
+        # Run the agent with the user query
         response = agent.run(query)
-        
-        # Log thought process
         st.session_state["logs"].append(f"Agent processed query: {query}")
         return response
     except Exception as e:
-        # Log the error and fallback to default agent
+        # Log the error and fallback to the default agent
         st.session_state["logs"].append(f"Error occurred: {str(e)}. Falling back to Default Agent.")
         fallback_response = default_tool(query)
         st.session_state["logs"].append(f"Default Agent Response: {fallback_response}")
         return fallback_response
 
-# Handle the user query and run the agent
+# Handle user query
 if user_query:
     with st.spinner("Thinking..."):
         response = safe_agent_run(user_query)
@@ -98,13 +90,10 @@ st.sidebar.subheader("Thought Process & Logs")
 for log in st.session_state["logs"]:
     st.sidebar.text(log)
 
-# Display message history
+# Display chat history in the main app
 st.subheader("Conversation History")
-memory_variables = memory.load_memory_variables(inputs={"input": user_query})  # Correct usage of memory
-
-chat_history = memory_variables.get("chat_history", [])
+chat_history = memory.chat_memory.messages  # Retrieve conversation history
 for message in chat_history:
-    # Check if the message is from the user or assistant
     if isinstance(message, HumanMessage):
         st.write(f"**You:** {message.content}")
     elif isinstance(message, AIMessage):
