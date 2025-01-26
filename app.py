@@ -18,47 +18,46 @@ if not openai_api_key:
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 # Chemistry Agent
-def chemistry_agent_fn(query):
+@tool
+def chemistry_tool(query: str) -> str:
+    """
+    Helps with chemistry-related problems by guiding students through questions.
+    """
     questions = [
         "What concept in chemistry are you working on?",
         "Can you identify the variables or data in the problem?",
         "What formula or principle applies to this scenario?"
     ]
-    for question in questions:
-        return f"{question} Let's work on it together!"
-    return "Let's solve this step by step."
-
-@tool
-def chemistry_tool(query):
-    return chemistry_agent_fn(query)
+    return f"{questions[0]} Let's work on it together!"
 
 # Physics Agent
-def physics_agent_fn(query):
+@tool
+def physics_tool(query: str) -> str:
+    """
+    Helps with physics-related problems by guiding students through questions.
+    """
     questions = [
         "Which topic in physics is troubling you?",
         "What equations or concepts might apply here?",
         "What are the known and unknown variables in the problem?"
     ]
-    for question in questions:
-        return f"{question} Let’s figure it out!"
-    return "Let’s work through it step by step."
-
-@tool
-def physics_tool(query):
-    return physics_agent_fn(query)
+    return f"{questions[0]} Let’s figure it out!"
 
 # Web Search Agent
 @tool
-def web_search_tool(query):
+def web_search_tool(query: str) -> str:
+    """
+    Performs a web search to find information related to the query.
+    """
     return f"Searching the web for: {query}. Here's what I found: (placeholder for web search results)."
 
 # Default Agent
-def default_agent_fn(query):
-    return f"I’m here to assist, but this seems unrelated to chemistry or physics. Can you clarify?"
-
 @tool
-def default_tool(query):
-    return default_agent_fn(query)
+def default_tool(query: str) -> str:
+    """
+    Handles general questions unrelated to chemistry or physics.
+    """
+    return f"I’m here to assist, but this seems unrelated to chemistry or physics. Can you clarify?"
 
 # Initialize agents with LangChain
 tools = [
