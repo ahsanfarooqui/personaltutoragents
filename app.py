@@ -108,7 +108,7 @@ memory_variables = memory.load_memory_variables(inputs={"input": user_query})  #
 chat_history = memory_variables.get("chat_history", [])
 for message in chat_history:
     # Check if the message is from the user or assistant
-    message_content = message['content']
+    message_content = message.content
     if isinstance(message, HumanMessage):
         st.write(f"**You:** {message_content}")
     elif isinstance(message, AIMessage):
