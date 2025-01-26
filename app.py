@@ -2,8 +2,8 @@ import streamlit as st
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, Tool
-from langchain.prompts import PromptTemplate
 from langchain.tools import tool
+from duckduckgo_search import ddg_search
 
 # Initialize Streamlit app
 st.title("Personalized Chemistry & Physics Tutor")
@@ -43,13 +43,22 @@ def physics_tool(query: str) -> str:
     ]
     return f"{questions[0]} Let’s figure it out!"
 
-# Web Search Agent
+# Web Search Agent (using DuckDuckGo search)
 @tool
 def web_search_tool(query: str) -> str:
     """
-    Performs a web search to find information related to the query.
+    Searches the web for information related to the query using DuckDuckGo search.
     """
-    return f"Searching the web for: {query}. Here's what I found: (placeholder for web search results)."
+    try:
+        search_results = ddg_search(query, max_results=3)  # Limit to 3 results
+        if not search_results:
+            return "No relevant results found."
+        result_text = "Here are the top results:\n"
+        for result in search_results:
+            result_text += f"- **{result['title']}**: {result['url']}\n"
+        return result_text
+    except Exception as e:
+        return f"An error occurred during web search: {str(e)}"
 
 # Default Agent
 @tool
@@ -63,7 +72,7 @@ def default_tool(query: str) -> str:
 tools = [
     Tool(name="Chemistry Tutor", func=chemistry_tool, description="Helps with chemistry problems."),
     Tool(name="Physics Tutor", func=physics_tool, description="Helps with physics problems."),
-    Tool(name="Web Search", func=web_search_tool, description="Search the web for additional info."),
+    Tool(name="Web Search", func=web_search_tool, description="Searches the web for additional info."),
     Tool(name="Default Helper", func=default_tool, description="Handles general queries."),
 ]
 
