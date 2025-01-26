@@ -3,7 +3,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, Tool
 from langchain.tools import tool
-from duckduckgo_search import ddg_search
+from duckduckgo_search import ddg_answers
 
 # Initialize Streamlit app
 st.title("Personalized Chemistry & Physics Tutor")
@@ -50,7 +50,7 @@ def web_search_tool(query: str) -> str:
     Searches the web for information related to the query using DuckDuckGo search.
     """
     try:
-        search_results = ddg_search(query, max_results=3)  # Limit to 3 results
+        search_results = ddg_answers(query, max_results=3)  # Limit to 3 results
         if not search_results:
             return "No relevant results found."
         result_text = "Here are the top results:\n"
