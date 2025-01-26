@@ -3,3 +3,5 @@ openai
 langchain
 tiktoken
 langchain_community
+python-dotenv
+duckduckgo-search
