@@ -3,8 +3,8 @@ import openai
 from langchain.agents import initialize_agent, Tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+from langchain.schema import HumanMessage, AIMessage  # Import HumanMessage and AIMessage
 from duckduckgo_search import DDGS
-from langchain.prompts import PromptTemplate
 
 # Set up OpenAI API key
 openai.api_key = st.secrets["openai_api_key"]
@@ -31,7 +31,7 @@ def web_search_tool(query: str) -> str:
         
         # If results are found, format them for display
         if results:
-            return "\n".join([f"{result['title']}: {result['url']}" for result in results])
+            return "\n".join([f"{result['title']}: {result['href']}" for result in results])
         else:
             return "No relevant results found."
     except Exception as e:
@@ -72,11 +72,8 @@ def safe_agent_run(query):
         memory_variables = memory.load_memory_variables(inputs={"input": query})  # Correct usage of memory
         chat_history = memory_variables.get("chat_history", [])
         
-        context = "\n".join([msg['content'] for msg in chat_history])  # Collect all previous interactions
+        context = "\n".join([msg.content for msg in chat_history])  # Collect all previous interactions
         
-        # Create a prompt with the full context of the conversation
-        prompt = f"Context:\n{context}\n\nUser's question: {query}"
-
         # Run the agent with the full context included
         response = agent.run(query)
         
@@ -108,8 +105,7 @@ memory_variables = memory.load_memory_variables(inputs={"input": user_query})  #
 chat_history = memory_variables.get("chat_history", [])
 for message in chat_history:
     # Check if the message is from the user or assistant
-    message_content = message.content
     if isinstance(message, HumanMessage):
-        st.write(f"**You:** {message_content}")
+        st.write(f"**You:** {message.content}")
     elif isinstance(message, AIMessage):
-        st.write(f"**Tutor:** {message_content}")
+        st.write(f"**Tutor:** {message.content}")
