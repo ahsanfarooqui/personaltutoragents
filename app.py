@@ -109,7 +109,7 @@ chat_history = memory_variables.get("chat_history", [])
 for message in chat_history:
     # Access the message content and type
     message_content = message.content
-    message_type = message['role']  # Can be 'user' or 'assistant'
+    message_type = message.role # Can be 'user' or 'assistant'
     
     if message_type == "user":
         st.write(f"**You:** {message_content}")
