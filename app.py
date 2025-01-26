@@ -108,7 +108,7 @@ memory_variables = memory.load_memory_variables(inputs={"input": user_query})  #
 chat_history = memory_variables.get("chat_history", [])
 for message in chat_history:
     # Access the message content and type
-    message_content = message['content']
+    message_content = message.content
     message_type = message['role']  # Can be 'user' or 'assistant'
     
     if message_type == "user":
