@@ -1,72 +1,42 @@
 import streamlit as st
+import openai
+from langchain.agents import initialize_agent, Tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
-from langchain.agents import initialize_agent, Tool
-from langchain.tools import tool
-from duckduckgo_search import ddg_answers
+from duckduckgo_search import ddg_search
+from langchain.prompts import PromptTemplate
 
-# Initialize Streamlit app
-st.title("Personalized Chemistry & Physics Tutor")
-st.sidebar.header("Settings")
-openai_api_key = st.sidebar.text_input("Enter OpenAI API Key:", type="password")
+# Set up OpenAI API key
+openai.api_key = st.secrets["openai_api_key"]
 
-if not openai_api_key:
-    st.warning("Please enter your OpenAI API key to proceed.")
-    st.stop()
+# Initialize memory with a higher context length (over 500 tokens)
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, max_token_limit=1500)
 
-# Initialize agents and memory
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-# Chemistry Agent
-@tool
+# Define tools for each agent
 def chemistry_tool(query: str) -> str:
-    """
-    Helps with chemistry-related problems by guiding students through questions.
-    """
-    questions = [
-        "What concept in chemistry are you working on?",
-        "Can you identify the variables or data in the problem?",
-        "What formula or principle applies to this scenario?"
-    ]
-    return f"{questions[0]} Let's work on it together!"
+    if not query:
+        return "Could you please clarify your chemistry question?"
+    return "Chemistry response based on the question."
 
-# Physics Agent
-@tool
 def physics_tool(query: str) -> str:
-    """
-    Helps with physics-related problems by guiding students through questions.
-    """
-    questions = [
-        "Which topic in physics is troubling you?",
-        "What equations or concepts might apply here?",
-        "What are the known and unknown variables in the problem?"
-    ]
-    return f"{questions[0]} Let’s figure it out!"
+    if not query:
+        return "Can you clarify your physics question?"
+    return "Physics response based on the question."
 
-# Web Search Agent (using DuckDuckGo search)
-@tool
 def web_search_tool(query: str) -> str:
-    """
-    Searches the web for information related to the query using DuckDuckGo search.
-    """
     try:
-        search_results = ddg_answers(query, max_results=3)  # Limit to 3 results
-        if not search_results:
+        results = ddg_search(query, max_results=3)
+        if results:
+            return "\n".join([f"{result['title']}: {result['url']}" for result in results])
+        else:
             return "No relevant results found."
-        result_text = "Here are the top results:\n"
-        for result in search_results:
-            result_text += f"- **{result['title']}**: {result['url']}\n"
-        return result_text
     except Exception as e:
         return f"An error occurred during web search: {str(e)}"
 
-# Default Agent
-@tool
 def default_tool(query: str) -> str:
-    """
-    Handles general questions unrelated to chemistry or physics.
-    """
-    return f"I’m here to assist, but this seems unrelated to chemistry or physics. Can you clarify?"
+    if not query:
+        return "I’m not sure how to assist you. Could you clarify?"
+    return f"Here’s a general response to the query: {query}"
 
 # Initialize agents with LangChain
 tools = [
@@ -76,23 +46,50 @@ tools = [
     Tool(name="Default Helper", func=default_tool, description="Handles general queries."),
 ]
 
-llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
-agent = initialize_agent(tools, llm, agent="chat-conversational-react-description", memory=memory)
+# Initialize OpenAI model
+llm = ChatOpenAI(temperature=0, openai_api_key=openai.api_key)
 
-# Streamlit Chat Layout
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+# Initialize LangChain agent with memory
+agent = initialize_agent(tools, llm, agent_type="chat-conversational-react-description", memory=memory)
 
-# User interaction
+# Streamlit interface
+st.title("Personalized Chemistry & Physics Tutor")
+st.sidebar.header("Logs")
 user_query = st.text_input("Ask a question:")
+
+# Initialize the logs in the sidebar
+if "logs" not in st.session_state:
+    st.session_state["logs"] = []
+
+# Fallback mechanism to default agent if error occurs
+def safe_agent_run(query):
+    try:
+        # Run the agent with the user's query
+        response = agent.run(query)
+        # Log thought process
+        st.session_state["logs"].append(f"Agent processed query: {query}")
+        return response
+    except Exception as e:
+        # Log the error and fallback to default agent
+        st.session_state["logs"].append(f"Error occurred: {str(e)}. Falling back to Default Agent.")
+        fallback_response = default_tool(query)
+        st.session_state["logs"].append(f"Default Agent Response: {fallback_response}")
+        return fallback_response
+
+# Handle the user query and run the agent
 if user_query:
     with st.spinner("Thinking..."):
-        response = agent.run(user_query)
-        st.session_state["messages"].append({"role": "user", "content": user_query})
-        st.session_state["messages"].append({"role": "assistant", "content": response})
+        response = safe_agent_run(user_query)
+        st.write(f"**Tutor:** {response}")
 
-# Display chat history
-for message in st.session_state["messages"]:
+# Display logs in the sidebar
+st.sidebar.subheader("Thought Process & Logs")
+for log in st.session_state["logs"]:
+    st.sidebar.text(log)
+
+# Display message history
+st.subheader("Conversation History")
+for message in memory.load_memory_variables().get("chat_history", []):
     if message["role"] == "user":
         st.write(f"**You:** {message['content']}")
     else:
