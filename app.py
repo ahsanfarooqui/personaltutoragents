@@ -106,13 +106,10 @@ st.subheader("Conversation History")
 memory_variables = memory.load_memory_variables(inputs={"input": user_query})  # Correct usage of memory
 
 chat_history = memory_variables.get("chat_history", [])
-st.write(chat_history)
 for message in chat_history:
-    # Access the message content and type
-    message_content = message.content
-    message_type = message.role # Can be 'user' or 'assistant'
-    
-    if message_type == "user":
+    # Check if the message is from the user or assistant
+    message_content = message['content']
+    if isinstance(message, HumanMessage):
         st.write(f"**You:** {message_content}")
-    elif message_type == "assistant":
+    elif isinstance(message, AIMessage):
         st.write(f"**Tutor:** {message_content}")
