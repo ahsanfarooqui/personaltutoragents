@@ -69,7 +69,7 @@ if "logs" not in st.session_state:
 def safe_agent_run(query):
     try:
         # Retrieve the chat history to include in context for better responses
-        chat_history = memory.load_memory_variables().get("chat_history", [])
+        chat_history = memory.messages  # Directly access memory's messages
         context = "\n".join([msg.content for msg in chat_history])  # Collect all previous interactions
         
         # Create a prompt with the full context of the conversation
@@ -101,7 +101,7 @@ for log in st.session_state["logs"]:
 
 # Display message history
 st.subheader("Conversation History")
-for message in memory.chat_memory.messages:
+for message in memory.messages:
     # Access the message content and type
     message_content = message.content
     message_type = message.type  # Can be 'human' or 'ai'
