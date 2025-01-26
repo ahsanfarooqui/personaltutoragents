@@ -68,8 +68,16 @@ if "logs" not in st.session_state:
 # Fallback mechanism to default agent if error occurs
 def safe_agent_run(query):
     try:
-        # Run the agent with the user's query
+        # Retrieve the chat history to include in context for better responses
+        chat_history = memory.load_memory_variables().get("chat_history", [])
+        context = "\n".join([msg.content for msg in chat_history])  # Collect all previous interactions
+        
+        # Create a prompt with the full context of the conversation
+        prompt = f"Context:\n{context}\n\nUser's question: {query}"
+
+        # Run the agent with the full context included
         response = agent.run(query)
+        
         # Log thought process
         st.session_state["logs"].append(f"Agent processed query: {query}")
         return response
