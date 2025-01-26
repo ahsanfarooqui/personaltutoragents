@@ -4,4 +4,4 @@ langchain
 tiktoken
 langchain_community
 python-dotenv
-duckduckgo-search
+duckduckgo-search==3.5.0
